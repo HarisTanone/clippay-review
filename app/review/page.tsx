@@ -154,7 +154,8 @@ export default function ReviewPage() {
   const [campaigns, setCampaigns] = useState<CampaignOption[]>([]);
 
   // UI States
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isInitialLoading, setIsInitialLoading] = useState<boolean>(true);
+  const [isUpdating, setIsUpdating] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
@@ -177,7 +178,7 @@ export default function ReviewPage() {
     const handler = setTimeout(() => {
       setDebouncedSearch(searchInput.trim());
       setPage(1);
-    }, 350);
+    }, 300);
     return () => clearTimeout(handler);
   }, [searchInput]);
 
@@ -207,7 +208,8 @@ export default function ReviewPage() {
 
   // Fetch Submissions Data
   const fetchSubmissions = useCallback(async () => {
-    setIsLoading(true);
+    // Jika data sudah ada, gunakan isUpdating agar tidak ada layout shift/flicker
+    setIsUpdating(true);
     setErrorMessage(null);
 
     try {
@@ -248,7 +250,8 @@ export default function ReviewPage() {
     } catch (err: any) {
       setErrorMessage(err.message || "Terjadi kendala saat memuat data.");
     } finally {
-      setIsLoading(false);
+      setIsInitialLoading(false);
+      setIsUpdating(false);
     }
   }, [page, perPage, statusFilter, campaignFilter, debouncedSearch]);
 
@@ -382,6 +385,7 @@ export default function ReviewPage() {
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
               />
+              {isUpdating && <div className={styles.searchSpinner} />}
             </div>
 
             {/* Segmented Status Tabs */}
@@ -454,6 +458,13 @@ export default function ReviewPage() {
 
         {/* Data Table */}
         <section className={styles.tableContainer}>
+          {/* Smooth progress bar at the top of the table */}
+          {isUpdating && (
+            <div className={styles.progressTrack}>
+              <div className={styles.progressBar} />
+            </div>
+          )}
+
           <div className={styles.tableScrollArea}>
             <table className={styles.dataTable}>
               <thead>
@@ -470,9 +481,9 @@ export default function ReviewPage() {
                   <th style={{ textAlign: "right" }}>Aksi</th>
                 </tr>
               </thead>
-              <tbody>
-                {isLoading ? (
-                  Array.from({ length: 8 }).map((_, i) => (
+              <tbody className={isUpdating ? styles.tableUpdating : ""}>
+                {isInitialLoading ? (
+                  Array.from({ length: Math.min(perPage, 10) }).map((_, i) => (
                     <tr key={`skel-${i}`}>
                       <td>
                         <div
@@ -726,7 +737,7 @@ export default function ReviewPage() {
           </div>
 
           {/* Pagination Footer */}
-          {!isLoading && !errorMessage && pagination.total > 0 && (
+          {!isInitialLoading && !errorMessage && pagination.total > 0 && (
             <div className={styles.paginationBar}>
               <div className={styles.paginationText}>
                 Menampilkan {(page - 1) * perPage + 1} &ndash;{" "}
@@ -738,7 +749,7 @@ export default function ReviewPage() {
                 <button
                   className={styles.navButton}
                   onClick={() => setPage(1)}
-                  disabled={page === 1}
+                  disabled={isUpdating || page === 1}
                   title="Halaman Pertama"
                 >
                   Pertama
@@ -746,7 +757,7 @@ export default function ReviewPage() {
                 <button
                   className={styles.navButton}
                   onClick={() => setPage((p) => Math.max(p - 1, 1))}
-                  disabled={!pagination.has_prev}
+                  disabled={isUpdating || !pagination.has_prev}
                   title="Sebelumnya"
                 >
                   Sebelumnya
@@ -770,6 +781,7 @@ export default function ReviewPage() {
                           page === targetPage ? styles.navButtonActive : ""
                         }`}
                         onClick={() => setPage(targetPage)}
+                        disabled={isUpdating}
                       >
                         {targetPage}
                       </button>
@@ -782,7 +794,7 @@ export default function ReviewPage() {
                   onClick={() =>
                     setPage((p) => Math.min(p + 1, pagination.total_pages))
                   }
-                  disabled={!pagination.has_next}
+                  disabled={isUpdating || !pagination.has_next}
                   title="Berikutnya"
                 >
                   Berikutnya
@@ -790,7 +802,7 @@ export default function ReviewPage() {
                 <button
                   className={styles.navButton}
                   onClick={() => setPage(pagination.total_pages)}
-                  disabled={page === pagination.total_pages}
+                  disabled={isUpdating || page === pagination.total_pages}
                   title="Halaman Terakhir"
                 >
                   Terakhir
