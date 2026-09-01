@@ -378,7 +378,7 @@ export default function ReviewPage() {
               <input
                 type="text"
                 className={styles.searchInput}
-                placeholder="Cari username creator..."
+                placeholder="Cari username creator atau judul campaign..."
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
               />

@@ -153,8 +153,10 @@ Postgres harus memilih antara menggunakan index `status` lalu melakukan *Sort* d
    - Kolom FK tidak otomatis diindeks oleh Postgres. Index ini mempercepat operasi `JOIN creators`.
 4. `idx_earnings_campaign_id (campaign_id)`:
    - Mempercepat agregasi ringkasan campaign (Bonus B3).
-5. **Optimasi Count Query**:
-   - Jika pengguna tidak melakukan pencarian creator username, query `COUNT(*)` tidak perlu melakukan `JOIN creators`, melainkan membaca langsung dari `submissions` via *Index Only Scan* (~7 milidetik).
+5. **Optimasi Pencarian Gabungan (Unified Search)**:
+   - Endpoint `GET /api/submissions` mendukung pencarian cerdas yang mencocokkan **username creator** maupun **judul campaign** (`search=...`) serta filter spesifik `campaignSearch=...` dan `campaignId=...`.
+6. **Optimasi Count Query**:
+   - Jika pengguna tidak melakukan pencarian text, query `COUNT(*)` tidak perlu melakukan `JOIN creators` atau `campaigns`, melainkan membaca langsung dari `submissions` via *Index Only Scan* (~7 milidetik).
 
 ---
 

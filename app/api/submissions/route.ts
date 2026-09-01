@@ -23,6 +23,7 @@ export async function GET(request: NextRequest) {
     const statusParam = searchParams.get("status")?.trim().toLowerCase();
     const campaignIdParam = searchParams.get("campaignId")?.trim();
     const searchParam = searchParams.get("search")?.trim();
+    const campaignSearchParam = searchParams.get("campaignSearch")?.trim();
 
     const validStatuses = ["pending", "approved", "rejected"];
     const status = validStatuses.includes(statusParam || "")
@@ -49,10 +50,16 @@ export async function GET(request: NextRequest) {
       queryParams.push(campaignId);
     }
 
+    if (campaignSearchParam) {
+      whereConditions.push(`cmp.title ILIKE $${paramIndex++}`);
+      queryParams.push(`%${campaignSearchParam}%`);
+    }
+
     if (searchParam) {
-      // Search by creator username (case-insensitive prefix / substring)
-      whereConditions.push(`c.username ILIKE $${paramIndex++}`);
+      // Pencarian gabungan: creator username ATAU judul campaign
+      whereConditions.push(`(c.username ILIKE $${paramIndex} OR cmp.title ILIKE $${paramIndex})`);
       queryParams.push(`%${searchParam}%`);
+      paramIndex++;
     }
 
     const whereClause =
@@ -61,15 +68,15 @@ export async function GET(request: NextRequest) {
         : "";
 
     // 4. Hitung TOTAL baris secara efisien
-    // Jika tidak ada filter search by creator, kita tidak perlu JOIN creators pada query COUNT
     let countSql: string;
     let countParams: any[];
 
-    if (searchParam) {
+    if (searchParam || campaignSearchParam) {
       countSql = `
         SELECT COUNT(*)::bigint AS total
         FROM submissions s
         JOIN creators c ON s.creator_id = c.id
+        JOIN campaigns cmp ON s.campaign_id = cmp.id
         ${whereClause}
       `;
       countParams = [...queryParams];
