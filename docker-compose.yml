@@ -1,0 +1,24 @@
+# ClipPay take-home — Postgres siap pakai.
+#   docker compose up -d
+#   psql "postgresql://clippay:clippay@localhost:5433/clippay" -f schema.sql
+#
+# Port 5433 (bukan 5432) biar gak bentrok sama Postgres lain di mesin kamu.
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: clippay
+      POSTGRES_PASSWORD: clippay
+      POSTGRES_DB: clippay
+    ports:
+      - "5433:5432"
+    volumes:
+      - clippay-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U clippay -d clippay"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  clippay-data:
